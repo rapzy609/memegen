@@ -1,7 +1,8 @@
 'use strict';
-// Logika tata letak teks sama dengan app.js (versi browser), tapi dijalankan di server.
+// Tata letak & gambar teks meme — sama dengan app.js (generator di halaman utama).
+// Dipakai untuk foto (gambar + teks) dan video (overlay teks transparan yang ditempel ffmpeg).
 
-const FAMILY = '"MemeImpact", Impact, "Arial Black", sans-serif';
+const FAMILY = '"MemeImpact", "MemeEmoji", Impact, "Arial Black", sans-serif';
 const even = (n) => Math.max(2, Math.round(n / 2) * 2);
 
 function wrapLines(ctx, text, maxW) {
@@ -66,37 +67,45 @@ function drawBlock(ctx, block, W, H, atTop, { outline, fill, stroke }) {
   }
 }
 
-/**
- * @param {{createCanvas: Function}} lib  modul @napi-rs/canvas
- * @param {{width:number,height:number}} img  hasil loadImage()
- * @param {object} o  opsi: top, bottom, size, outline, fill, stroke, upper, square, maxSide, format, quality
- * @returns {Promise<{buffer: Buffer, width: number, height: number}>}
- */
-async function renderMeme(lib, img, o) {
-  let sw = img.width, sh = img.height, sx = 0, sy = 0;
-  if (o.square) {
-    const side = Math.min(sw, sh);
-    sx = (sw - side) / 2; sy = (sh - side) / 2;
-    sw = sh = side;
-  }
-  const scale = Math.min(1, o.maxSide / Math.max(sw, sh));
-  const W = even(sw * scale), H = even(sh * scale);
-
-  const canvas = lib.createCanvas(W, H);
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
-
+function drawTexts(ctx, W, H, o) {
   const opts = { size: o.size, upper: o.upper };
   const top = layoutText(ctx, o.top, W, opts);
   const bottom = layoutText(ctx, o.bottom, W, opts);
   const style = { outline: o.outline, fill: o.fill, stroke: o.stroke };
   drawBlock(ctx, top, W, H, true, style);
   drawBlock(ctx, bottom, W, H, false, style);
+}
 
+/** Hitung area potong (opsi 1:1) dan ukuran kanvas akhir. */
+function computeLayout(srcW, srcH, { square, maxSide }) {
+  let sw = srcW, sh = srcH, sx = 0, sy = 0;
+  if (square) {
+    const side = Math.min(sw, sh);
+    sx = (sw - side) / 2; sy = (sh - side) / 2;
+    sw = sh = side;
+  }
+  const scale = Math.min(1, maxSide / Math.max(sw, sh));
+  return { sx, sy, sw, sh, W: even(sw * scale), H: even(sh * scale) };
+}
+
+/** Foto: gambar + teks. */
+async function renderImage(lib, img, o) {
+  const { sx, sy, sw, sh, W, H } = computeLayout(img.width, img.height, o);
+  const canvas = lib.createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  drawTexts(ctx, W, H, o);
   const buffer = o.format === 'png'
     ? await canvas.encode('png')
     : await canvas.encode(o.format === 'webp' ? 'webp' : 'jpeg', o.quality);
   return { buffer, width: W, height: H };
 }
 
-module.exports = { renderMeme, layoutText, wrapLines };
+/** Video: PNG transparan berisi teks saja, ukuran W×H, untuk ditempel ffmpeg di setiap frame. */
+async function renderOverlay(lib, W, H, o) {
+  const canvas = lib.createCanvas(W, H);
+  drawTexts(canvas.getContext('2d'), W, H, o);
+  return canvas.encode('png');
+}
+
+module.exports = { renderImage, renderOverlay, computeLayout, layoutText, wrapLines };
