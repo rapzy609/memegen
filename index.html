@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bikin Meme — Generator Meme Foto & Video</title>
+  <meta name="description" content="Buat meme dari foto atau video dengan teks atas dan bawah. Diproses langsung di browser, tanpa upload ke server.">
+  <meta name="theme-color" content="#ffd60a">
+  <link rel="preload" href="/impact.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1 class="logo">BIKIN<span>MEME</span></h1>
+      <p class="tag">Foto atau video, teks atas &amp; bawah. Semua diproses di browser kamu — tidak ada yang diunggah ke server.</p>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <!-- ============ PREVIEW ============ -->
+    <section class="preview" aria-label="Pratinjau">
+      <label id="drop" class="drop" for="file" tabindex="0">
+        <input id="file" type="file" accept="image/*,video/*" hidden>
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>
+        <strong>Pilih foto / video</strong>
+        <span>atau seret &amp; lepas file ke sini</span>
+      </label>
+
+      <div id="stageBox" class="stage-box" hidden>
+        <canvas id="stage"></canvas>
+      </div>
+
+      <div id="meta" class="meta" hidden>
+        <span id="metaText"></span>
+        <label class="link" for="file">Ganti file</label>
+      </div>
+
+      <div id="recBox" class="rec" hidden>
+        <div class="bar"><i id="recBar"></i></div>
+        <div class="rec-row">
+          <span id="recText">Merekam…</span>
+          <button id="cancelBtn" type="button" class="ghost">Batalkan</button>
+        </div>
+        <p class="hint">Biarkan tab ini tetap terbuka sampai selesai. Merekam berjalan sepanjang durasi video.</p>
+      </div>
+
+      <div id="result" class="result" hidden>
+        <h2>Hasil video</h2>
+        <video id="resultVideo" controls playsinline></video>
+        <a id="resultLink" class="btn" download>Unduh video</a>
+      </div>
+    </section>
+
+    <!-- ============ KONTROL ============ -->
+    <section class="controls" aria-label="Pengaturan meme">
+      <div class="field">
+        <label for="topText">Teks atas</label>
+        <textarea id="topText" rows="2" placeholder="Teks atas">KETIKA KODE JALAN</textarea>
+      </div>
+      <div class="field">
+        <label for="bottomText">Teks bawah</label>
+        <textarea id="bottomText" rows="2" placeholder="Teks bawah">TAPI GAK TAU KENAPA 😂</textarea>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="size">Ukuran teks <output id="sizeOut"></output></label>
+          <input id="size" type="range" min="5" max="20" step="0.5" value="11">
+        </div>
+        <div class="field">
+          <label for="outline">Tebal outline <output id="outlineOut"></output></label>
+          <input id="outline" type="range" min="0" max="30" step="1" value="14">
+        </div>
+        <div class="field">
+          <label for="fill">Warna teks</label>
+          <input id="fill" type="color" value="#ffffff">
+        </div>
+        <div class="field">
+          <label for="stroke">Warna outline</label>
+          <input id="stroke" type="color" value="#000000">
+        </div>
+      </div>
+
+      <label class="check"><input id="upper" type="checkbox" checked> HURUF KAPITAL SEMUA</label>
+
+      <div id="videoOpts" class="videoOpts" hidden>
+        <div class="field">
+          <label for="res">Resolusi video</label>
+          <select id="res">
+            <option value="480">480p — kecil &amp; cepat</option>
+            <option value="720" selected>720p — seimbang</option>
+            <option value="1080">1080p — tajam, berat</option>
+          </select>
+        </div>
+        <label class="check"><input id="audio" type="checkbox" checked> Sertakan suara asli video</label>
+      </div>
+
+      <button id="exportBtn" type="button" class="btn big" disabled>Pilih file dulu</button>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Dibuat dengan canvas &amp; MediaRecorder. Foto diunduh sebagai PNG; video sebagai MP4 bila browser mendukung, kalau tidak WebM.</p>
+  </footer>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
