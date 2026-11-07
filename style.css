@@ -42,7 +42,6 @@ body {
 
 .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
 
-/* ---------- header ---------- */
 .top { border-bottom: 1px solid var(--line); padding: 28px 0 22px; }
 .logo {
   margin: 0;
@@ -58,7 +57,6 @@ body {
 }
 .tag { margin: 10px 0 0; color: var(--muted); max-width: 60ch; }
 
-/* ---------- layout ---------- */
 .layout {
   display: grid;
   gap: 24px;
@@ -77,7 +75,6 @@ body {
   padding: 18px;
 }
 
-/* ---------- dropzone ---------- */
 .drop {
   display: grid;
   place-items: center;
@@ -98,7 +95,6 @@ body {
   outline: none;
 }
 
-/* ---------- stage ---------- */
 .stage-box {
   display: grid;
   place-items: center;
@@ -108,10 +104,10 @@ body {
 }
 #stage {
   display: block;
-  max-width: 100%;
-  max-height: 68vh;
-  width: auto;
+  width: 100%;
   height: auto;
+  max-height: 68vh;
+  object-fit: contain;
 }
 
 .meta {
@@ -124,7 +120,6 @@ body {
 }
 .link { color: var(--ink); text-decoration: underline; cursor: pointer; white-space: nowrap; }
 
-/* ---------- controls ---------- */
 .controls { display: grid; gap: 16px; }
 
 .field { display: grid; gap: 6px; min-width: 0; }
@@ -156,7 +151,6 @@ input[type="color"] {
 
 .videoOpts { display: grid; gap: 14px; padding-top: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
 
-/* ---------- buttons ---------- */
 .btn {
   display: inline-flex; justify-content: center; align-items: center;
   font: 700 16px/1 system-ui, sans-serif;
@@ -180,7 +174,6 @@ input[type="color"] {
 .status { margin: 0; min-height: 1.5em; font-size: 14px; color: var(--muted); }
 .status.error { color: var(--danger); }
 
-/* ---------- recording / result ---------- */
 .rec { margin-top: 14px; display: grid; gap: 8px; }
 .bar { height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }

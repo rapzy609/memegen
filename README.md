@@ -13,6 +13,7 @@ batas ukuran body / timeout Vercel.
 `npx serve .` lalu buka alamat yang tampil.
 
 ## Catatan
+- Opsi 1:1 memotong dari tengah (foto & video). Opsi 10 detik hanya memakai 10 detik pertama video.
 - Video direkam real-time, jadi durasi proses = durasi video. Biarkan tab tetap terbuka.
 - Hasil video: MP4 (H.264) di Chrome/Edge/Safari terbaru, WebM di browser lain.
 - Font `impact.ttf` adalah font komersial (Monotype); pastikan lisensinya sesuai untuk situs publik.

@@ -1,8 +1,6 @@
-// Bikin Meme — semua proses (foto & video) berjalan di browser.
-// Foto: canvas -> PNG. Video: canvas + MediaRecorder (+ audio via WebAudio).
-
 const FONT = '"MemeImpact", Impact, "Arial Black", sans-serif';
 const MAX_IMAGE_SIDE = 2048;
+const TRIM_SECONDS = 10;
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -11,7 +9,7 @@ const el = {
   top: $('topText'), bottom: $('bottomText'),
   size: $('size'), sizeOut: $('sizeOut'), outline: $('outline'), outlineOut: $('outlineOut'),
   fill: $('fill'), stroke: $('stroke'), upper: $('upper'),
-  videoOpts: $('videoOpts'), res: $('res'), audio: $('audio'),
+  square: $('square'), videoOpts: $('videoOpts'), res: $('res'), audio: $('audio'), trim: $('trim'),
   exportBtn: $('exportBtn'), status: $('status'),
   recBox: $('recBox'), recBar: $('recBar'), recText: $('recText'), cancelBtn: $('cancelBtn'),
   result: $('result'), resultVideo: $('resultVideo'), resultLink: $('resultLink'),
@@ -19,28 +17,23 @@ const el = {
 const ctx = el.stage.getContext('2d');
 
 const state = {
-  kind: null,        // 'image' | 'video'
-  source: null,      // HTMLImageElement | HTMLVideoElement
+  kind: null,
+  source: null,
   srcW: 0, srcH: 0,
+  crop: { sx: 0, sy: 0, sw: 0, sh: 0 }, 
   url: null,
-  audio: null,       // { ctx, node } untuk video aktif
+  audio: null,
   recording: false,
   finish: null,
   cancelled: false,
   raf: 0,
 };
 
-/* ------------------------------------------------------------------ */
-/* Status helper                                                       */
-/* ------------------------------------------------------------------ */
 function say(msg, isError = false) {
   el.status.textContent = msg || '';
   el.status.classList.toggle('error', !!isError);
 }
 
-/* ------------------------------------------------------------------ */
-/* Teks meme                                                           */
-/* ------------------------------------------------------------------ */
 function wrapLines(text, maxW) {
   const out = [];
   for (const para of text.split('\n')) {
@@ -54,7 +47,7 @@ function wrapLines(text, maxW) {
     }
     out.push(line);
   }
-  // buang baris kosong di ujung
+
   while (out.length && out[out.length - 1] === '') out.pop();
   while (out.length && out[0] === '') out.shift();
   return out;
@@ -70,8 +63,6 @@ function layoutText(raw, W) {
   const base = W * (parseFloat(el.size.value) / 100);
   let fs = base;
   let lines;
-  // Tahap 1: usahakan muat satu baris (kecilkan sampai 70% ukuran pilihan).
-  // Tahap 2: kalau tetap tidak muat, boleh membungkus sampai 3 baris.
   for (;;) {
     ctx.font = `${fs}px ${FONT}`;
     lines = wrapLines(text, maxW);
@@ -110,9 +101,9 @@ function render() {
   if (!state.source) return;
   const W = el.stage.width, H = el.stage.height;
   ctx.clearRect(0, 0, W, H);
-  ctx.drawImage(state.source, 0, 0, W, H);
+  const c = state.crop;
+  ctx.drawImage(state.source, c.sx, c.sy, c.sw, c.sh, 0, 0, W, H);
 
-  // ukur dulu keduanya (measureText bergantung pada font aktif), lalu gambar
   const top = layoutText(el.top.value, W);
   const bottom = layoutText(el.bottom.value, W);
   drawBlock(top, W, H, true);
@@ -124,34 +115,45 @@ function loop() {
   state.raf = requestAnimationFrame(loop);
 }
 
-/* ------------------------------------------------------------------ */
-/* Ukuran output                                                       */
-/* ------------------------------------------------------------------ */
 const even = (n) => Math.max(2, Math.round(n / 2) * 2);
 
 function applySize() {
   if (!state.source) return;
+
+  let { srcW: sw, srcH: sh } = state;
+  let sx = 0, sy = 0;
+  if (el.square.checked) {
+    const side = Math.min(sw, sh);
+    sx = (sw - side) / 2; sy = (sh - side) / 2;
+    sw = sh = side;
+  }
+  state.crop = { sx, sy, sw, sh };
+
   const maxSide = state.kind === 'video' ? parseInt(el.res.value, 10) : MAX_IMAGE_SIDE;
-  const scale = Math.min(1, maxSide / Math.max(state.srcW, state.srcH));
-  el.stage.width = even(state.srcW * scale);
-  el.stage.height = even(state.srcH * scale);
+  const scale = Math.min(1, maxSide / Math.max(sw, sh));
+  el.stage.width = even(sw * scale);
+  el.stage.height = even(sh * scale);
   updateMeta();
   render();
 }
 
+function trimLimit(duration) {
+  return el.trim.checked ? Math.min(TRIM_SECONDS, isFinite(duration) ? duration : TRIM_SECONDS) : duration;
+}
+
 function updateMeta() {
   const dim = `${el.stage.width}×${el.stage.height}`;
+  const crop = el.square.checked ? ' · 1:1' : '';
   if (state.kind === 'video') {
     const d = state.source.duration;
-    el.metaText.textContent = `Video · ${isFinite(d) ? d.toFixed(1) + ' detik · ' : ''}${dim}`;
+    const lim = trimLimit(d);
+    const cut = el.trim.checked && isFinite(d) && d > TRIM_SECONDS ? ` (dipotong dari ${d.toFixed(1)})` : '';
+    el.metaText.textContent = `Video · ${isFinite(lim) ? lim.toFixed(1) + ' detik' + cut + ' · ' : ''}${dim}${crop}`;
   } else {
-    el.metaText.textContent = `Foto · ${dim}`;
+    el.metaText.textContent = `Foto · ${dim}${crop}`;
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Memuat file                                                         */
-/* ------------------------------------------------------------------ */
 function cleanup() {
   cancelAnimationFrame(state.raf);
   if (state.source && state.kind === 'video') {
@@ -195,7 +197,7 @@ async function loadFile(file) {
 
   try {
     await document.fonts.load(`50px ${FONT}`);
-  } catch (_) { /* pakai font cadangan */ }
+  } catch (_) { }
 
   try {
     if (isImage) {
@@ -221,7 +223,7 @@ async function loadFile(file) {
       state.srcW = v.videoWidth; state.srcH = v.videoHeight;
       showLoaded('video');
       applySize();
-      try { await v.play(); } catch (_) { /* preview tetap menampilkan frame pertama */ }
+      try { await v.play(); } catch (_) { /* ⓒ Rapz Ganteng */ }
       loop();
     }
   } catch (_) {
@@ -236,9 +238,6 @@ async function loadFile(file) {
   if (isImage) render();
 }
 
-/* ------------------------------------------------------------------ */
-/* Ekspor foto                                                         */
-/* ------------------------------------------------------------------ */
 function download(blob, name) {
   const a = document.createElement('a');
   const u = URL.createObjectURL(blob);
@@ -256,9 +255,6 @@ function exportImage() {
   }, 'image/png');
 }
 
-/* ------------------------------------------------------------------ */
-/* Ekspor video                                                        */
-/* ------------------------------------------------------------------ */
 function pickMime(withAudio) {
   const a = withAudio ? ',mp4a.40.2' : '';
   const o = withAudio ? ',opus' : '';
@@ -272,13 +268,12 @@ function pickMime(withAudio) {
 }
 
 function setupAudio(video) {
-  // createMediaElementSource hanya boleh sekali per elemen -> simpan & pakai ulang
   if (!state.audio) {
     const actx = new (window.AudioContext || window.webkitAudioContext)();
     state.audio = { ctx: actx, node: actx.createMediaElementSource(video) };
   }
   const dest = state.audio.ctx.createMediaStreamDestination();
-  state.audio.node.connect(dest); // tidak disambung ke speaker -> rekaman senyap di perangkat
+  state.audio.node.connect(dest);
   return dest;
 }
 
@@ -290,7 +285,7 @@ async function exportVideo() {
 
   state.recording = true; state.cancelled = false;
   el.exportBtn.disabled = true; el.file.disabled = true;
-  el.res.disabled = true; el.audio.disabled = true;
+  el.res.disabled = true; el.audio.disabled = true; el.trim.disabled = true; el.square.disabled = true;
   el.result.hidden = true;
   el.recBox.hidden = false; el.recBar.style.width = '0%';
   el.recText.textContent = 'Menyiapkan…';
@@ -303,7 +298,7 @@ async function exportVideo() {
     video.play().catch(() => {});
     state.recording = false;
     el.exportBtn.disabled = false; el.file.disabled = false;
-    el.res.disabled = false; el.audio.disabled = false;
+    el.res.disabled = false; el.audio.disabled = false; el.trim.disabled = false; el.square.disabled = false;
     el.recBox.hidden = true;
   };
 
@@ -333,7 +328,7 @@ async function exportVideo() {
     });
     video.muted = !withAudio || !dest ? true : false;
 
-    const duration = video.duration;
+    const duration = trimLimit(video.duration);
     const ended = new Promise((res) => { state.finish = res; video.onended = () => { video.onended = null; res(); }; });
 
     recorder.start(250);
@@ -342,6 +337,7 @@ async function exportVideo() {
 
     const tick = () => {
       if (!state.recording) return;
+      if (isFinite(duration) && video.currentTime >= duration) { video.pause(); state.finish && state.finish(); return; }
       const p = isFinite(duration) && duration > 0 ? Math.min(1, video.currentTime / duration) : 0;
       el.recBar.style.width = `${(p * 100).toFixed(1)}%`;
       el.recText.textContent = `Merekam… ${Math.round(p * 100)}%`;
@@ -350,7 +346,7 @@ async function exportVideo() {
     tick();
 
     await ended;
-    await new Promise((r) => setTimeout(r, 150)); // beri waktu frame terakhir tertangkap
+    await new Promise((r) => setTimeout(r, 150)); 
     if (recorder.state !== 'inactive') recorder.stop();
     await stopped;
 
@@ -387,9 +383,6 @@ function cancelRecording() {
   if (state.finish) state.finish();
 }
 
-/* ------------------------------------------------------------------ */
-/* Event                                                               */
-/* ------------------------------------------------------------------ */
 function syncOutputs() {
   el.sizeOut.textContent = `${el.size.value}%`;
   el.outlineOut.textContent = `${el.outline.value}%`;
@@ -400,10 +393,12 @@ function syncOutputs() {
     n.addEventListener(ev, () => { syncOutputs(); if (state.kind === 'image') render(); }));
 });
 el.res.addEventListener('change', applySize);
+el.square.addEventListener('change', applySize);
+el.trim.addEventListener('change', updateMeta);
 
 el.file.addEventListener('change', () => {
   loadFile(el.file.files[0]);
-  el.file.value = ''; // boleh pilih file yang sama lagi
+  el.file.value = '';
 });
 
 el.exportBtn.addEventListener('click', () => {
@@ -412,25 +407,21 @@ el.exportBtn.addEventListener('click', () => {
 });
 el.cancelBtn.addEventListener('click', cancelRecording);
 
-// drag & drop (seluruh halaman)
 ['dragenter', 'dragover'].forEach((ev) =>
   document.addEventListener(ev, (e) => { e.preventDefault(); el.drop.classList.add('over'); }));
 ['dragleave', 'drop'].forEach((ev) =>
   document.addEventListener(ev, (e) => { e.preventDefault(); el.drop.classList.remove('over'); }));
 document.addEventListener('drop', (e) => loadFile(e.dataTransfer.files[0]));
 
-// tempel gambar dari clipboard
 document.addEventListener('paste', (e) => {
   const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith('image/') || x.type.startsWith('video/'));
   if (f) loadFile(f);
 });
 
-// dropzone bisa dibuka dengan keyboard
 el.drop.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.file.click(); }
 });
 
-// jika font baru selesai dimuat, gambar ulang
 document.fonts?.addEventListener?.('loadingdone', () => { if (state.kind === 'image') render(); });
 
 syncOutputs();
