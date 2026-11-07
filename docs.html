@@ -28,21 +28,21 @@
   <header class="top">
     <div class="wrap">
       <h1 class="logo">BIKIN<span>MEME</span> API</h1>
-      <p class="tag">Kirim URL gambar + teks, terima meme jadi. Cocok untuk project dan bot WhatsApp. <a href="/">← Kembali ke generator</a></p>
+      <p class="tag">Kirim URL foto atau video + teks, terima meme jadi. Cocok untuk project dan bot WhatsApp. <a href="/">← Kembali ke generator</a></p>
     </div>
   </header>
 
   <main class="wrap doc">
     <section class="card">
       <h2>Endpoint</h2>
-      <p><code>GET</code> atau <code>POST</code> <code id="base">/api/meme</code> — mengembalikan gambar (PNG secara default), atau JSON berisi base64 jika <code>format=json</code>.</p>
-      <p class="note">Gratis, tanpa API key (kecuali pemilik situs mengaktifkannya). Hanya foto — video tidak didukung lewat API.</p>
+      <p><code>GET</code> atau <code>POST</code> <code id="base">/api/meme</code> — mengembalikan foto (PNG) atau video (MP4) hasil meme, atau JSON berisi base64 jika <code>format=json</code>. Hasilnya sama dengan generator di halaman utama: font Impact, outline, emoji, opsi 1:1, resolusi, suara, dan potong 10 detik.</p>
+      <p class="note">Gratis, tanpa API key (kecuali pemilik situs mengaktifkannya). Sumber file hanya lewat <code>url</code> (link langsung ke foto atau video).</p>
     </section>
 
     <section class="card try">
       <h2>Coba langsung</h2>
       <div class="row">
-        <input id="tUrl" type="text" value="https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png" aria-label="URL gambar">
+        <input id="tUrl" type="text" value="https://files.catbox.moe/fvuu8a.mp4" aria-label="URL foto atau video">
       </div>
       <div class="row">
         <input id="tTop" type="text" value="Teks atas" aria-label="Teks atas">
@@ -51,6 +51,7 @@
       <button id="tGo" class="btn" type="button">Buat meme</button>
       <p id="tMsg" class="status" role="status"></p>
       <img id="tImg" alt="" hidden>
+      <video id="tVid" controls playsinline loop muted hidden style="max-width:100%;border-radius:10px;margin-top:12px"></video>
       <pre><code id="tCode"></code></pre>
     </section>
 
@@ -58,29 +59,29 @@
       <h2>Parameter</h2>
       <div class="tbl"><table>
         <tr><th>Nama</th><th>Default</th><th>Keterangan</th></tr>
-        <tr><td><code>url</code></td><td>—</td><td>URL gambar publik (http/https). Salah satu dari <code>url</code> / <code>image</code> / upload mentah wajib ada.</td></tr>
-        <tr><td><code>image</code></td><td>—</td><td>Gambar dalam base64 (boleh berawalan <code>data:image/…;base64,</code>), untuk POST JSON.</td></tr>
-        <tr><td><code>top</code>, <code>bottom</code></td><td>kosong</td><td>Teks atas / bawah, maks 200 karakter. <code>\n</code> = baris baru.</td></tr>
-        <tr><td><code>size</code></td><td>11</td><td>Ukuran teks (5–20, % lebar gambar).</td></tr>
+        <tr><td><code>url</code></td><td>—</td><td><strong>Wajib.</strong> Link langsung foto (jpg, png, webp, gif, avif) atau video (mp4, mov, webm, mkv). Contoh: <code>https://files.catbox.moe/fvuu8a.mp4</code></td></tr>
+        <tr><td><code>top</code>, <code>bottom</code></td><td>kosong</td><td>Teks atas / bawah, maks 200 karakter, emoji didukung. <code>\n</code> = baris baru.</td></tr>
+        <tr><td><code>size</code></td><td>11</td><td>Ukuran teks (5–20, % lebar).</td></tr>
         <tr><td><code>outline</code></td><td>14</td><td>Tebal outline (0–30).</td></tr>
         <tr><td><code>fill</code>, <code>stroke</code></td><td>ffffff, 000000</td><td>Warna teks / outline dalam hex (3 atau 6 digit, tanpa <code>#</code> di URL).</td></tr>
-        <tr><td><code>upper</code></td><td>true</td><td>Ubah teks jadi huruf kapital.</td></tr>
-        <tr><td><code>square</code></td><td>false</td><td>Potong dari tengah jadi 1:1.</td></tr>
-        <tr><td><code>maxSide</code></td><td>1024</td><td>Sisi terpanjang hasil, 128–2048 px.</td></tr>
-        <tr><td><code>format</code></td><td>png</td><td><code>png</code>, <code>jpg</code>, <code>webp</code>, atau <code>json</code>.</td></tr>
-        <tr><td><code>quality</code></td><td>90</td><td>Kualitas jpg/webp (30–100).</td></tr>
+        <tr><td><code>upper</code></td><td>true</td><td>Huruf kapital semua.</td></tr>
+        <tr><td><code>square</code></td><td>false</td><td>Potong dari tengah jadi 1:1 (foto &amp; video).</td></tr>
+        <tr><td><code>res</code></td><td>720</td><td><em>Video.</em> Resolusi: <code>480</code>, <code>720</code>, atau <code>1080</code> (sisi terpanjang).</td></tr>
+        <tr><td><code>audio</code></td><td>true</td><td><em>Video.</em> Sertakan suara asli.</td></tr>
+        <tr><td><code>trim</code></td><td>false</td><td><em>Video.</em> Ambil maksimal 10 detik pertama. Tanpa ini, durasi maksimal 30 detik.</td></tr>
+        <tr><td><code>maxSide</code></td><td>2048</td><td><em>Foto.</em> Sisi terpanjang hasil, 128–2048 px.</td></tr>
+        <tr><td><code>format</code></td><td>png / mp4</td><td>Foto: <code>png</code>, <code>jpg</code>, <code>webp</code>. Video selalu MP4 (H.264/AAC, bisa diputar di WhatsApp &amp; iPhone). <code>json</code> = base64 di dalam JSON, untuk foto maupun video.</td></tr>
+        <tr><td><code>quality</code></td><td>90</td><td><em>Foto</em> jpg/webp (30–100).</td></tr>
       </table></div>
-      <p class="note">Batas: gambar maks 8 MB. Error dikembalikan sebagai <code>{"ok":false,"error":"…"}</code> dengan status HTTP yang sesuai (400, 401, 403, 413, 415, 502, 504).</p>
+      <p class="note">Batas: foto maks 20 MB, video maks 100 MB (lewat URL), video maks 30 detik. Hasil dibatasi ±4 MB karena batas respons Vercel: bitrate video diturunkan otomatis, dan foto PNG yang terlalu besar otomatis dikirim sebagai JPEG (lihat header <code>X-Meme-Note</code>). Video diproses real-time-ish di server, biasanya beberapa detik. Error dikembalikan sebagai <code>{"ok":false,"error":"…"}</code> dengan status HTTP yang sesuai (400, 401, 403, 413, 415, 502, 504).</p>
     </section>
 
     <section class="card">
       <h2>Contoh</h2>
       <p><strong>Browser / link langsung</strong></p>
       <pre><code class="ex-get"></code></pre>
-      <p><strong>cURL — simpan ke file</strong></p>
+      <p><strong>cURL — video</strong></p>
       <pre><code class="ex-curl"></code></pre>
-      <p><strong>cURL — upload gambar dari komputer</strong></p>
-      <pre><code class="ex-up"></code></pre>
       <p><strong>Baileys / bot WhatsApp (Node.js)</strong></p>
       <pre><code class="ex-wa"></code></pre>
       <p><strong>whatsapp-web.js</strong></p>
@@ -92,7 +93,7 @@
 
     <section class="card">
       <h2>Catatan</h2>
-      <p class="note" style="margin:0">Emoji pada teks mungkin tidak tampil karena server tidak memiliki font emoji. Font <code>impact.ttf</code> adalah font komersial — pastikan lisensinya sesuai.</p>
+      <p class="note" style="margin:0">Emoji dirender dengan font Noto Color Emoji (OFL). Font <code>impact.ttf</code> adalah font komersial — pastikan lisensinya sesuai.</p>
     </section>
   </main>
 
@@ -100,37 +101,43 @@
     const B = location.origin + '/api/meme';
     document.getElementById('base').textContent = B;
     const ex = (c, t) => { document.querySelector('.' + c).textContent = t; };
-    const U = 'https://contoh.com/foto.jpg';
-    ex('ex-get', `${B}?url=${U}&top=Halo&bottom=Dunia`);
-    ex('ex-curl', `curl -o meme.png "${B}?url=${U}&top=Halo&bottom=Dunia"`);
-    ex('ex-up', `curl -X POST "${B}?top=Halo&bottom=Dunia" \\\n  -H "Content-Type: image/jpeg" --data-binary @foto.jpg -o meme.png`);
-    ex('ex-wa', `// Node 18+ (fetch bawaan)
-const q = new URLSearchParams({ url: imageUrl, top: 'Halo', bottom: 'Dunia' });
+    const U = 'https://files.catbox.moe/fvuu8a.mp4';
+    ex('ex-get', `${B}?url=${U}&top=Halo 😂&bottom=Dunia`);
+    ex('ex-curl', `curl -o meme.mp4 "${B}?url=${U}&top=Halo&bottom=Dunia&res=480&trim=1"`);
+    ex('ex-wa', `// Node 18+ (fetch bawaan). Foto → kirim image, video → kirim video.
+const q = new URLSearchParams({ url: mediaUrl, top: 'Halo', bottom: 'Dunia' });
 const res = await fetch('${B}?' + q);
 if (!res.ok) throw new Error((await res.json()).error);
 const buffer = Buffer.from(await res.arrayBuffer());
 
-await sock.sendMessage(jid, { image: buffer, caption: 'Nih memenya' });`);
+if (res.headers.get('x-meme-type') === 'video')
+  await sock.sendMessage(jid, { video: buffer, mimetype: 'video/mp4', caption: 'Nih memenya' });
+else
+  await sock.sendMessage(jid, { image: buffer, caption: 'Nih memenya' });`);
     ex('ex-wwebjs', `const { MessageMedia } = require('whatsapp-web.js');
-const q = new URLSearchParams({ url: imageUrl, top: 'Halo', bottom: 'Dunia', format: 'json' });
+const q = new URLSearchParams({ url: mediaUrl, top: 'Halo', bottom: 'Dunia', format: 'json' });
 const r = await (await fetch('${B}?' + q)).json();
-await msg.reply(new MessageMedia(r.mime, r.data, 'meme.png'));`);
+if (!r.ok) throw new Error(r.error);
+await msg.reply(new MessageMedia(r.mime, r.data, r.type === 'video' ? 'meme.mp4' : 'meme.png'));`);
     ex('ex-py', `import requests
-r = requests.get("${B}", params={"url": "${U}", "top": "Halo", "bottom": "Dunia"})
+r = requests.get("${B}", params={"url": "${U}", "top": "Halo", "bottom": "Dunia"}, timeout=90)
 r.raise_for_status()
-open("meme.png", "wb").write(r.content)`);
+ext = "mp4" if r.headers["content-type"] == "video/mp4" else "png"
+open("meme." + ext, "wb").write(r.content)`);
 
     const $ = (id) => document.getElementById(id);
     $('tGo').addEventListener('click', async () => {
       const q = new URLSearchParams({ url: $('tUrl').value, top: $('tTop').value, bottom: $('tBottom').value });
       const link = `${B}?${q}`;
       $('tCode').textContent = link;
-      $('tMsg').textContent = 'Memproses…'; $('tMsg').classList.remove('error');
+      $('tMsg').textContent = 'Memproses… (video bisa beberapa detik)'; $('tMsg').classList.remove('error');
       try {
         const r = await fetch(link);
         if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Gagal (' + r.status + ')');
-        const url = URL.createObjectURL(await r.blob());
-        $('tImg').src = url; $('tImg').hidden = false; $('tMsg').textContent = '';
+        const blob = await r.blob(), url = URL.createObjectURL(blob), vid = blob.type.startsWith('video/');
+        $('tImg').hidden = vid; $('tVid').hidden = !vid;
+        if (vid) { $('tVid').src = url; $('tVid').play().catch(() => {}); } else $('tImg').src = url;
+        $('tMsg').textContent = '';
       } catch (e) { $('tMsg').textContent = e.message; $('tMsg').classList.add('error'); }
     });
   </script>

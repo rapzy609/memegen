@@ -30,8 +30,8 @@
   ],
   "functions": {
     "api/meme.js": {
-      "includeFiles": "impact.ttf",
-      "maxDuration": 15
+      "includeFiles": "{impact.ttf,fonts/NotoColorEmoji.ttf,node_modules/ffmpeg-static/ffmpeg}",
+      "maxDuration": 60
     }
   }
 }

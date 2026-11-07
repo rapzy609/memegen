@@ -19,11 +19,15 @@ Selain itu ada **API** (`/api/meme`, hanya foto) untuk project/bot WhatsApp — 
 - Font `impact.ttf` adalah font komersial (Monotype); pastikan lisensinya sesuai untuk situs publik.
 
 ## API
-`GET/POST /api/meme?url=<gambar>&top=...&bottom=...` → mengembalikan PNG.
-Parameter lengkap, contoh Baileys/whatsapp-web.js/Python ada di halaman `/docs`.
+`GET /api/meme?url=<link foto/video>&top=...&bottom=...` → mengembalikan PNG (foto) atau MP4 (video).
+Hasilnya sama dengan generator di halaman utama (Impact, outline, emoji, 1:1, `res`, `audio`, `trim`).
+Sumber file **hanya lewat URL** (tidak ada upload, jadi tidak kena batas body Vercel). Parameter lengkap dan contoh Baileys / whatsapp-web.js / Python ada di `/docs`.
 
-- Kode: `api/meme.js` (endpoint), `api/_lib/render.js` (gambar teks), `api/_lib/fetch-image.js` (unduh URL aman: blok IP privat/SSRF, maks 8 MB, timeout 8 dtk).
-- Opsional: set environment variable `API_KEY` di Vercel agar request wajib menyertakan header `X-API-Key` (atau `?key=`).
-- Jalankan lokal dengan API: `npm i` lalu `npx vercel dev`.
-- Batas bawaan Vercel: body request maks ~4,5 MB (untuk upload), jadi gambar besar sebaiknya dikirim lewat `url`.
-- Pertimbangkan Vercel Firewall / rate limit bila API ramai dipakai.
+- Kode: `api/meme.js` (endpoint), `api/_lib/render.js` (tata letak teks), `api/_lib/video.js` (ffmpeg), `api/_lib/fetch-media.js` (unduh URL aman: blok IP privat/SSRF, timeout).
+- Video: teks digambar sebagai PNG transparan lalu ditempel ffmpeg (`ffmpeg-static`) → MP4 H.264/AAC. Maks 30 dtk (ubah lewat env `MAX_VIDEO_SECONDS`), `trim=true` = 10 dtk.
+- Emoji: font `fonts/NotoColorEmoji.ttf` (Noto Color Emoji, lisensi OFL) ikut ter-deploy bersama fungsi.
+- Batas respons Vercel ±4,5 MB: hasil dijaga ≤ ±4,3 MB (bitrate video diturunkan otomatis; PNG besar otomatis jadi JPEG).
+- `maxDuration` fungsi 60 detik (batas plan Hobby). Video panjang / 1080p bisa kena timeout → pakai `trim=true` atau `res=480`.
+- Opsional: env `API_KEY` di Vercel → request wajib menyertakan header `X-API-Key` (atau `?key=`).
+- Video memakan CPU; pasang Vercel Firewall / rate limit atau `API_KEY` bila API ramai.
+- Lokal: `npm i` lalu `npx vercel dev`.
